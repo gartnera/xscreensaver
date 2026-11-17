@@ -169,6 +169,12 @@ typedef struct {
   Bool button_down_p, was_button_down_p;
   rotator *rot;
 
+# ifdef HAVE_TVOS
+  GLfloat dyn_max_scale;	/* The configured --scale: never exceed it. */
+  double dyn_avg;		/* Smoothed seconds per frame of rendering. */
+  int dyn_frames;		/* Frames measured since the last change. */
+# endif
+
 } xshadertoy_configuration;
 
 static xshadertoy_configuration *bps = NULL;
@@ -888,6 +894,110 @@ reshape_xshadertoy (ModeInfo *mi, int width, int height)
 }
 
 
+# ifdef HAVE_TVOS
+/* Dynamic resolution.  Full-screen fragment shaders at 4K are too slow for
+   Apple TV hardware in many cases, so adjust 'scale' (the render size; the
+   result is blitted up to the full window) to keep the time to render a
+   frame within the frame budget.  draw_xshadertoy ends with glFinish(), so
+   the measured time includes the GPU work.  Cost is proportional to the
+   number of pixels, i.e. to scale^2.
+
+   Reallocating the FBOs on a change would lose any state carried between
+   frames in the buffers, but none of the shipped shaders use more than a
+   single Image buffer, and changes are rare due to the hysteresis below.
+
+   The scale each shader settles on is remembered (per hack and variant,
+   for the life of the process), so coming back to it starts at the right
+   resolution instead of lagging at 4K while re-measuring.
+ */
+static struct { char *name; int variant; GLfloat scale; } dyn_cache[100];
+
+static GLfloat *
+dyn_cache_slot (ModeInfo *mi, Bool create_p)
+{
+  xshadertoy_configuration *bp = &bps[MI_SCREEN(mi)];
+  int i;
+  for (i = 0; i < countof(dyn_cache) && dyn_cache[i].name; i++)
+    if (dyn_cache[i].variant == bp->variant &&
+        !strcmp (dyn_cache[i].name, progname))
+      return &dyn_cache[i].scale;
+  if (!create_p || i >= countof(dyn_cache))
+    return 0;
+  dyn_cache[i].name = strdup (progname);
+  dyn_cache[i].variant = bp->variant;
+  return &dyn_cache[i].scale;
+}
+
+/* Called before the FBOs are (re)allocated for a new hack or variant. */
+static void
+dyn_start (ModeInfo *mi)
+{
+  xshadertoy_configuration *bp = &bps[MI_SCREEN(mi)];
+  GLfloat *s = dyn_cache_slot (mi, False);
+  scale = bp->dyn_max_scale;
+  if (s && *s > 0 && *s < scale)
+    scale = *s;
+  bp->dyn_frames = 0;
+}
+
+static void
+adapt_scale (ModeInfo *mi, double frame_secs)
+{
+  xshadertoy_configuration *bp = &bps[MI_SCREEN(mi)];
+  const double min_scale = 0.4;	/* ~1536x864 on a 4K screen */
+  const int skip = 2;		/* First frames include shader compiles. */
+  double budget = MI_DELAY(mi) / 1000000.0;
+  double target, ratio, alpha;
+  GLfloat ns, *slot;
+  int n;
+
+  if (budget < 1/60.0) budget = 1/60.0;
+  target = budget * 0.85;		/* Leave some headroom. */
+
+  n = ++bp->dyn_frames - skip;		/* Frames measured. */
+  if (n <= 0)
+    return;
+
+  /* Plain mean over the first 10 measured frames, then an EMA. */
+  alpha = (n < 10 ? 1.0 / n : 0.1);
+  bp->dyn_avg = (n == 1 ? frame_secs
+                 : bp->dyn_avg * (1 - alpha) + frame_secs * alpha);
+
+  ratio = target / bp->dyn_avg;	/* > 1 means there is headroom. */
+
+  /* Way over budget: react after just a few frames.  Otherwise wait for
+     a steadier average before fine-tuning in either direction. */
+  if (! (n >= 3 && ratio < 0.6) && n < 30)
+    return;
+
+  if (ratio > 0.95 && ratio < 1.3)	/* Close enough; don't hunt. */
+    return;
+
+  ns = scale * sqrt (ratio);
+  if (ns > scale * 1.25) ns = scale * 1.25;	/* Grow cautiously. */
+  if (ns < min_scale) ns = min_scale;
+  if (ns > bp->dyn_max_scale) ns = bp->dyn_max_scale;
+  if (fabs (ns - scale) < 0.02)
+    return;
+
+  fprintf (stderr, "%s: render scale %.2f -> %.2f (%.1f ms/frame)\n",
+           progname, scale, ns, bp->dyn_avg * 1000);
+  scale = ns;
+  delete_framebuffers (mi);
+  gen_framebuffers (mi);
+  /* gen_framebuffers leaves a channel FBO bound; restore the window's
+     before this frame is presented. */
+  glBindFramebuffer (GL_DRAW_FRAMEBUFFER, bp->win_draw_fbo);
+  glBindFramebuffer (GL_READ_FRAMEBUFFER, bp->win_read_fbo);
+  /* No compile to skip after a resize, so measure from the next frame. */
+  bp->dyn_frames = skip;
+
+  slot = dyn_cache_slot (mi, True);
+  if (slot) *slot = scale;
+}
+# endif /* HAVE_TVOS */
+
+
 ENTRYPOINT Bool
 xshadertoy_handle_event (ModeInfo *mi, XEvent *event)
 {
@@ -920,6 +1030,10 @@ init_xshadertoy (ModeInfo *mi)
 
   parse_program_args (mi);
   init_glsl (mi);
+# ifdef HAVE_TVOS
+  bp->dyn_max_scale = scale;	/* init_glsl clamped it to (0, 1]. */
+  dyn_start (mi);
+# endif
   reshape_xshadertoy (mi, MI_WIDTH(mi), MI_HEIGHT(mi));
 
   if (duration < 1) duration = 1;
@@ -975,11 +1089,18 @@ draw_xshadertoy (ModeInfo *mi)
   if (!bp->glx_context)
     return;
 
+# ifdef HAVE_TVOS
+  double frame_start = now;
+# endif
+
   if (bp->nvariants > 1 && now > bp->start_time + duration)
     {
       /* bp->variant = random() % bp->nvariants; */
       bp->variant = (bp->variant + 1) % bp->nvariants;
       init_glsl (mi);
+# ifdef HAVE_TVOS
+      dyn_start (mi);		/* New scene: its own remembered scale. */
+# endif
       reshape_xshadertoy (mi, MI_WIDTH(mi), MI_HEIGHT(mi));
     }
 
@@ -1155,6 +1276,10 @@ draw_xshadertoy (ModeInfo *mi)
 
   if (mi->fps_p) do_fps (mi);
   glFinish();
+
+# ifdef HAVE_TVOS
+  adapt_scale (mi, double_time() - frame_start);
+# endif
 
   glXSwapBuffers(dpy, window);
 }
