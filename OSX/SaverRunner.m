@@ -413,6 +413,23 @@
   menu.allowedPressTypes = @[ @(UIPressTypeMenu) ];
   [self.view addGestureRecognizer:menu];
   [menu release];
+
+  // Play/Pause skips to another random saver (the tvOS stand-in for shake).
+  UITapGestureRecognizer *play = [[UITapGestureRecognizer alloc]
+                                   initWithTarget:self
+                                   action:@selector(playPausePressed:)];
+  play.allowedPressTypes = @[ @(UIPressTypePlayPause) ];
+  [self.view addGestureRecognizer:play];
+  [play release];
+}
+
+- (void)playPausePressed:(UIGestureRecognizer *)sender
+{
+  if (self.isBeingDismissed || !self.presentingViewController)
+    return;
+  if (_saverView && [_saverView isAnimating])
+    [_saverView stopAnimation];
+  [_parent didShake:_saverView];
 }
 
 - (void)menuPressed:(UIGestureRecognizer *)sender

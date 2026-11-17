@@ -374,7 +374,10 @@ add_default_options (const XrmOptionDescRec *opts,
 #  undef STR
 # endif // !HAVE_IPHONE
 
-# ifdef HAVE_IPHONE
+# ifdef HAVE_TVOS
+    // No settings UI on tvOS yet, so cycle to a random saver by default.
+    ".globalCycle:         True",
+# elif defined(HAVE_IPHONE)
     ".globalCycle:         False",
     ".globalCycleTimeout:  300",
     ".globalCycleSelected: True",

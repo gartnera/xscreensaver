@@ -445,6 +445,28 @@
 }
 
 
+#ifdef HAVE_TVOS
+/* Apple TV can't shake, so the Siri Remote's Play/Pause button stands in
+   for it: launch a random saver.
+ */
+- (void)viewDidLoad
+{
+  [super viewDidLoad];
+  UITapGestureRecognizer *play = [[UITapGestureRecognizer alloc]
+                                   initWithTarget:self
+                                   action:@selector(playPausePressed:)];
+  play.allowedPressTypes = @[ @(UIPressTypePlayPause) ];
+  [self.view addGestureRecognizer:play];
+  [play release];
+}
+
+- (void)playPausePressed:(UIGestureRecognizer *)sender
+{
+  [self motionEnded:UIEventSubtypeMotionShake withEvent:nil];
+}
+#endif // HAVE_TVOS
+
+
 /* We need this to respond to "shake" gestures
  */
 - (BOOL)canBecomeFirstResponder
