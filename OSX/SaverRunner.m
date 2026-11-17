@@ -1854,12 +1854,14 @@ willFinishLaunchingWithOptions:(NSDictionary<NSString *,id> *) opts
 }
 */
 
+#ifndef HAVE_TVOS   // No interface orientations on tvOS.
 // Maybe this is the default?
 - (UIInterfaceOrientationMask)
   supportedInterfaceOrientationsForWindowScene: (UIWindowScene *) scene
 {
   return UIInterfaceOrientationMaskAll;
 }
+#endif // !HAVE_TVOS
 
 #endif // HAVE_IPHONE
 

@@ -27,6 +27,9 @@ sub sanity_check() {
   my $d2 = '/usr/include/netinet/';
   my $d3 = $d2;
 
+  # tvOS builds Sonar without ICMP (simulation only), so no headers needed.
+  exit (0) if (($ENV{PLATFORM_NAME} || '') =~ m/^appletv/);
+
   if (! $d1) {
     print STDERR "ERROR: SDK_DIR unset\n";
     exit 1;

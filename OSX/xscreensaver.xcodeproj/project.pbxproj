@@ -2541,7 +2541,7 @@
 		AF568ADB26E7060500CCBA38 /* pulsar.c in Sources */ = {isa = PBXBuildFile; fileRef = AFA55B3F09933EC600F3E977 /* pulsar.c */; settings = {COMPILER_FLAGS = "-DUSE_GL"; }; };
 		AF568ADC26E7060500CCBA38 /* quasicrystal.c in Sources */ = {isa = PBXBuildFile; fileRef = AFF28695178611720050A578 /* quasicrystal.c */; settings = {COMPILER_FLAGS = "-DUSE_GL"; }; };
 		AF568ADD26E7060500CCBA38 /* queens.c in Sources */ = {isa = PBXBuildFile; fileRef = AFA55E0609935EB800F3E977 /* queens.c */; settings = {COMPILER_FLAGS = "-DUSE_GL"; }; };
-		AF568ADE26E7060500CCBA38 /* quickhull.c in Sources */ = {isa = PBXBuildFile; fileRef = AFC5CFED2044AB03004CEB5E /* quickhull.c */; };
+		AF568ADE26E7060500CCBA38 /* quickhull.c in Sources */ = {isa = PBXBuildFile; fileRef = AFC5CFED2044AB03004CEB5E /* quickhull.c */; settings = {COMPILER_FLAGS = "-DUSE_GL"; }; };
 		AF568ADF26E7060500CCBA38 /* raverhoop.c in Sources */ = {isa = PBXBuildFile; fileRef = AFA211A31CD59FD800C0D2A1 /* raverhoop.c */; settings = {COMPILER_FLAGS = "-DUSE_GL"; }; };
 		AF568AE026E7060500CCBA38 /* razzledazzle.c in Sources */ = {isa = PBXBuildFile; fileRef = AF41E969201D4B6B0098E253 /* razzledazzle.c */; settings = {COMPILER_FLAGS = "-DUSE_GL"; }; };
 		AF568AE126E7060500CCBA38 /* robot.c in Sources */ = {isa = PBXBuildFile; fileRef = AFBE743F19A7C6930018AA35 /* robot.c */; settings = {COMPILER_FLAGS = "-DUSE_GL"; }; };
@@ -2609,7 +2609,6 @@
 		AF568B1F26E7060500CCBA38 /* winduprobot.c in Sources */ = {isa = PBXBuildFile; fileRef = AF39E2A1198A13F50064A58D /* winduprobot.c */; settings = {COMPILER_FLAGS = "-DUSE_GL"; }; };
 		AF568B2226E7060500CCBA38 /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AFEB9C3A1590054B003974F3 /* OpenGLES.framework */; };
 		AF568B2426E7060500CCBA38 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AFEB9C3815900514003974F3 /* UIKit.framework */; };
-		AF568B2526E7060500CCBA38 /* AssetsLibrary.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF561DF715969C5B007CA5ED /* AssetsLibrary.framework */; };
 		AF568B2626E7060500CCBA38 /* Photos.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AF142BB01EFEFBA20005C0A8 /* Photos.framework */; };
 		AF568B2726E7060500CCBA38 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AFEB9C3C15900558003974F3 /* Foundation.framework */; };
 		AF568B2826E7060500CCBA38 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AFEB9C3E1590056A003974F3 /* CoreGraphics.framework */; };
@@ -5097,8 +5096,8 @@
 		AFF772753048A03600F75CA2 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CEE0BC611A6B0D6200C098BF /* OpenGL.framework */; };
 		AFF772763048A03600F75CA2 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = AF78369617DB9F25003B9FC0 /* libz.dylib */; };
 		AFF772803048A11900F75CA2 /* floppy.xml in Resources */ = {isa = PBXBuildFile; fileRef = AFF7727E3048A11900F75CA2 /* floppy.xml */; };
-		AFF772813048A11900F75CA2 /* floppy.c in Sources */ = {isa = PBXBuildFile; fileRef = AFF7727D3048A11900F75CA2 /* floppy.c */; };
-		AFF772823048A11900F75CA2 /* floppy_model.c in Sources */ = {isa = PBXBuildFile; fileRef = AFF7727F3048A11900F75CA2 /* floppy_model.c */; };
+		AFF772813048A11900F75CA2 /* floppy.c in Sources */ = {isa = PBXBuildFile; fileRef = AFF7727D3048A11900F75CA2 /* floppy.c */; settings = {COMPILER_FLAGS = "-DUSE_GL"; }; };
+		AFF772823048A11900F75CA2 /* floppy_model.c in Sources */ = {isa = PBXBuildFile; fileRef = AFF7727F3048A11900F75CA2 /* floppy_model.c */; settings = {COMPILER_FLAGS = "-DUSE_GL"; }; };
 		AFF772833048A11900F75CA2 /* floppy.c in Sources */ = {isa = PBXBuildFile; fileRef = AFF7727D3048A11900F75CA2 /* floppy.c */; settings = {COMPILER_FLAGS = "-DUSE_GL"; }; };
 		AFF772843048A11900F75CA2 /* floppy_model.c in Sources */ = {isa = PBXBuildFile; fileRef = AFF7727F3048A11900F75CA2 /* floppy_model.c */; settings = {COMPILER_FLAGS = "-DUSE_GL"; }; };
 		AFF772853048A11900F75CA2 /* floppy.xml in Resources */ = {isa = PBXBuildFile; fileRef = AFF7727E3048A11900F75CA2 /* floppy.xml */; };
@@ -12550,7 +12549,6 @@
 				AFE780FE26FC395300D38239 /* libjwxyz.a in Frameworks */,
 				AF568B2226E7060500CCBA38 /* OpenGLES.framework in Frameworks */,
 				AF568B2426E7060500CCBA38 /* UIKit.framework in Frameworks */,
-				AF568B2526E7060500CCBA38 /* AssetsLibrary.framework in Frameworks */,
 				AF568B2626E7060500CCBA38 /* Photos.framework in Frameworks */,
 				AF568B2726E7060500CCBA38 /* Foundation.framework in Frameworks */,
 				AF568B2826E7060500CCBA38 /* CoreGraphics.framework in Frameworks */,
@@ -47103,6 +47101,7 @@
 				INFOPLIST_FILE = XScreenSaver.plist;
 				INSTALL_PATH = "$(HOME)/Library/Screen Savers";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				TVOS_DEPLOYMENT_TARGET = 17.6;
 				LIBRARY_SEARCH_PATHS = "$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)";
 				MACOSX_DEPLOYMENT_TARGET = 14.6;
 				ONLY_ACTIVE_ARCH = YES;
@@ -47222,6 +47221,7 @@
 				INFOPLIST_FILE = XScreenSaver.plist;
 				INSTALL_PATH = "$(HOME)/Library/Screen Savers";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				TVOS_DEPLOYMENT_TARGET = 17.6;
 				LIBRARY_SEARCH_PATHS = "$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)";
 				LLVM_LTO = NO;
 				"LLVM_LTO[sdk=macosx*]" = NO;

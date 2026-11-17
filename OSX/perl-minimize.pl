@@ -1,4 +1,4 @@
-#!/opt/local/bin/perl -w
+#!/usr/bin/perl -w
 # Copyright © 2025-2026 Jamie Zawinski <jwz@jwz.org>
 #
 # Permission to use, copy, modify, distribute, and sell this software and its

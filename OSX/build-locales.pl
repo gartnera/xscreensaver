@@ -161,7 +161,8 @@ sub localize($) {
 
   $app_dir =~ s@/+$@@gs;
 
-  my $all_p = ($app_name eq 'XScreenSaver');
+  my $all_p = ($app_name eq 'XScreenSaver' ||
+               $app_name eq 'XScreenSaver-tvOS');
 
   return if ($app_name eq 'XScreenSaverUpdater');
 

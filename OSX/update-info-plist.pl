@@ -356,7 +356,7 @@ sub minimize_scripts($) {
   closedir $dirp;
   foreach my $f (sort @files) {
     next if ($f =~ m/^\./s);
-    next if ($f eq 'XScreenSaver');
+    next if ($f eq 'XScreenSaver' || $f eq 'XScreenSaver-tvOS');
     $f = "$dir/$f";
     next if ($f =~ m/\.(xml|png|jpg|ttf)$/s);
     next if (-d $f);
@@ -518,7 +518,7 @@ sub update($) {
   my $vers = $1;
   my ($ignore, $info_str, $name) = update_saver_xml ($app_dir, $vers);
 
-  if ($app_name eq 'XScreenSaver') {
+  if ($app_name eq 'XScreenSaver' || $app_name eq 'XScreenSaver-tvOS') {
     compress_all_xml_files ($app_dir, $vers);
   } else {
 

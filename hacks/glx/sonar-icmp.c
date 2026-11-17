@@ -49,6 +49,11 @@
 # define READ_FILES
 #endif
 
+#ifdef HAVE_TVOS   /* No ICMP headers in the tvOS SDK; simulation only. */
+# undef HAVE_ICMP
+# undef HAVE_ICMPHDR
+#endif
+
 #if defined(HAVE_ICMP) || defined(HAVE_ICMPHDR)
 # include <unistd.h>
 # include <sys/stat.h>
