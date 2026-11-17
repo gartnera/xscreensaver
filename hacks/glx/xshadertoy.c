@@ -1033,6 +1033,14 @@ init_xshadertoy (ModeInfo *mi)
 # ifdef HAVE_TVOS
   bp->dyn_max_scale = scale;	/* init_glsl clamped it to (0, 1]. */
   dyn_start (mi);
+
+  /* The default 20ms delay caps these at 50 FPS, which judders on a 60Hz
+     TV.  Shadertoy animation is driven by iTime, not by frame count, so
+     running faster doesn't change the speed of the animation.  Ask a bit
+     sooner than 1/60 sec since the animation timer is coarse; presenting
+     the frame is vsync-locked anyway.  Leave non-default settings alone. */
+  if (MI_DELAY(mi) == 20000)
+    MI_DELAY(mi) = 15000;
 # endif
   reshape_xshadertoy (mi, MI_WIDTH(mi), MI_HEIGHT(mi));
 
