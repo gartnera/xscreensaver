@@ -36,6 +36,11 @@
 #import "yarandom.h"
 #import "nslog.h"
 
+#ifdef HAVE_TVOS
+# import <AVKit/AVKit.h>
+# import <CoreMedia/CoreMedia.h>
+#endif
+
 #ifdef HAVE_IPHONE
 
 # ifndef __IPHONE_8_0
@@ -1663,10 +1668,51 @@ FAIL:
 
   [win setRootViewController: rotating_nav];
   [win setAutoresizesSubviews:YES];
-  [win setAutoresizingMask: 
-            (UIViewAutoresizingFlexibleWidth | 
+  [win setAutoresizingMask:
+            (UIViewAutoresizingFlexibleWidth |
              UIViewAutoresizingFlexibleHeight)];
   [win makeKeyAndVisible];
+
+# if defined(HAVE_TVOS) && defined(TVOS_FORCE_SDR)
+  /* Everything we draw is 8-bit SDR.  If the Apple TV is set to output
+     Dolby Vision / HDR, SDR content gets converted to HDR, and many TVs
+     then show raised, greyish blacks.  When "Match Content: Dynamic Range"
+     is on, ask for an SDR (BT.709) 60Hz mode while we're frontmost; tvOS
+     restores the user's default format when we leave.  This is a no-op if
+     matching is turned off.  Requires tvOS 17 for this initializer.
+
+     Off by default: setting preferredDisplayCriteria makes tvOS do an HDMI
+     mode switch (a black flash) even when the Apple TV is already in SDR,
+     and tvOS offers no public way to tell whether the current output is
+     HDR (UIScreen's EDR headroom reads 1.0 either way).  Build with
+     GCC_PREPROCESSOR_DEFINITIONS='$(inherited) TVOS_FORCE_SDR=1' if your
+     Apple TV outputs Dolby Vision / HDR. */
+  {
+    NSDictionary *ext = @{
+      (id) kCMFormatDescriptionExtension_ColorPrimaries:
+        (id) kCMFormatDescriptionColorPrimaries_ITU_R_709_2,
+      (id) kCMFormatDescriptionExtension_TransferFunction:
+        (id) kCMFormatDescriptionTransferFunction_ITU_R_709_2,
+      (id) kCMFormatDescriptionExtension_YCbCrMatrix:
+        (id) kCMFormatDescriptionYCbCrMatrix_ITU_R_709_2,
+    };
+    CMVideoFormatDescriptionRef fd = NULL;
+    if (CMVideoFormatDescriptionCreate (kCFAllocatorDefault,
+                                        kCMVideoCodecType_H264, 3840, 2160,
+                                        (CFDictionaryRef) ext, &fd)
+        == noErr) {
+      AVDisplayCriteria *c = [[AVDisplayCriteria alloc]
+                               initWithRefreshRate: 60
+                                 formatDescription: fd];
+      win.avDisplayManager.preferredDisplayCriteria = c;
+      fprintf (stderr, "Requested SDR display mode (matching %s)\n",
+               (win.avDisplayManager.displayCriteriaMatchingEnabled
+                ? "enabled" : "disabled"));
+      [c release];
+      CFRelease (fd);
+    }
+  }
+# endif // HAVE_TVOS && TVOS_FORCE_SDR
 
   SaverListController *menu = [[SaverListController alloc] 
                                 initWithNames: [saverNames allKeys]
