@@ -394,6 +394,45 @@
 }
 
 
+# ifdef HAVE_TVOS
+
+/* The Menu/Back button on the Siri Remote: by default UIKit responds to it
+   by dismissing this modal controller directly, bypassing wantsFadeOut.
+   That left the saver animating off-screen and 'nonrotating_controller'
+   still set in SaverRunner, so loadSaver never presented the next saver.
+   Catch it with a Menu-only gesture recognizer (which also suppresses
+   UIKit's default handling) and route it through the same path as the
+   iOS close button.
+ */
+- (void)viewDidLoad
+{
+  [super viewDidLoad];
+  UITapGestureRecognizer *menu = [[UITapGestureRecognizer alloc]
+                                   initWithTarget:self
+                                   action:@selector(menuPressed:)];
+  menu.allowedPressTypes = @[ @(UIPressTypeMenu) ];
+  [self.view addGestureRecognizer:menu];
+  [menu release];
+}
+
+- (void)menuPressed:(UIGestureRecognizer *)sender
+{
+#  if !defined __OPTIMIZE__ || TARGET_IPHONE_SIMULATOR
+  NSLog (@"Menu pressed: exiting saver");
+#  endif
+
+  // Ignore repeated presses while the fade-out is already in progress.
+  if (self.isBeingDismissed || !self.presentingViewController)
+    return;
+
+  if (_saverView && [_saverView isAnimating])
+    [_saverView stopAnimation];
+  [_parent wantsFadeOut:_saverView];
+}
+
+# endif // HAVE_TVOS
+
+
 # ifndef HAVE_TVOS
 
 #pragma clang diagnostic push

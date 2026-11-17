@@ -3140,7 +3140,17 @@ gl_check_ver (const struct gl_version *caps,
   [pan2 requireGestureRecognizerToFail: pinch];
 
   [self setMultipleTouchEnabled:YES];
-# endif // !HAVE_TVOS
+# else  // HAVE_TVOS
+  // By default these respond to every Siri Remote button, including Menu,
+  // which then never reaches SaverViewController and the saver can't be
+  // exited.  Only the touch-surface click should act as a "mouse click".
+  NSArray *select = @[ @(UIPressTypeSelect) ];
+  dtap.allowedPressTypes = select;
+  stap.allowedPressTypes = select;
+  hold.allowedPressTypes = select;
+  pan.allowedPressTypes  = @[];
+  pan2.allowedPressTypes = @[];
+# endif // HAVE_TVOS
 
   // As of Oct 2021 (macOS 11.6, iOS 15.1) minimumNumberOfTouches and
   // maximumNumberOfTouches are being ignored in gesture recognisers,
