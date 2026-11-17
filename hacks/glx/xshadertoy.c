@@ -1205,14 +1205,20 @@ draw_xshadertoy (ModeInfo *mi)
     }
 
   glXMakeCurrent (MI_DISPLAY(mi), MI_WINDOW(mi), *bp->glx_context);
+# ifndef HAVE_TVOS
   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+# else
+  /* Skip clearing the window: the blit below overwrites all of it, and no
+     depth buffer is used, so this was a wasted full-screen (4K) pass. */
+# endif
 
 # ifdef HAVE_TVOS
-  /* Time only the shader passes, which render to offscreen FBOs.  Touching
-     the window's renderbuffer (the glClear above, the blit below) can block
-     waiting for the display, which is not reduced by lowering the render
-     scale; including it made adapt_scale shrink cheap shaders for nothing.
-     So drain that wait first, and stop the clock before the blit. */
+  /* Time only the shader passes, which render to offscreen FBOs.  Work on
+     the window's renderbuffer (the previous frame's present, the blit
+     below) can block waiting for the display, which is not reduced by
+     lowering the render scale; including it made adapt_scale shrink cheap
+     shaders for nothing.  So drain any pending work first, and stop the
+     clock before the blit. */
   glFinish();
   render_start = double_time();
 # endif
