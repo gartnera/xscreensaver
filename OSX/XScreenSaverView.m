@@ -2486,13 +2486,26 @@ gl_check_ver (const struct gl_version *caps,
   //
   // NSAssert(xdata, @"no xdata when drawing");
   if (! xdata) abort();
+# ifdef HAVE_TVOS
+  double frame_start = now;
+# endif
   unsigned long delay = xsft->draw_cb (xdpy, xwindow, xdata);
   if (fpst && fps_cb)
     fps_cb (xdpy, xwindow, fpst, xdata);
 
   gettimeofday (&tv, 0);
   now = tv.tv_sec + (tv.tv_usec / 1000000.0);
+# ifdef HAVE_TVOS
+  /* Measure the delay from the start of the frame, not the end.  GL hacks
+     end with glFinish(), so draw_cb includes all the GPU time, and adding
+     the delay after that made the frame period render_time + delay
+     (e.g. a 15ms shader at the default 20ms delay ran at 28 FPS instead of
+     50).  This makes it max(render_time, delay). */
+  next_frame_time = frame_start + (delay / 1000000.0);
+  if (next_frame_time < now) next_frame_time = now;
+# else
   next_frame_time = now + (delay / 1000000.0);
+# endif
 
 # ifdef JWXYZ_QUARTZ
   [self drawBackbuffer];
