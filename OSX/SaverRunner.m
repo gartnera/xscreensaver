@@ -1321,9 +1321,14 @@ relabel_menus (NSObject *v, NSString *old_str, NSString *new_str)
            componentsSeparatedByCharactersInSet:
              [NSCharacterSet characterSetWithCharactersInString:
                                @" \t\n-."]]) {
+    // Take the first year: update-info-plist.pl turns "Written by X; 2001."
+    // into "2001-2026" (copyright range), and we want the original year,
+    // not the build year.
     int n = [word doubleValue];
-    if (n > 1970 && n < 2100)
+    if (n > 1970 && n < 2100) {
       year = word;
+      break;
+    }
   }
 
   // Now that we have found the year from the English text,
