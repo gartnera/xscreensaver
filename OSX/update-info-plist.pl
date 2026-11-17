@@ -289,6 +289,36 @@ sub update_saver_xml($$) {
 }
 
 
+# Savers left out of the tvOS app: ones that need the network, a photo or
+# screen image to manipulate, or that mostly display device info / URL text.
+# The saver list is built from the XML files in the bundle, so removing the
+# XML removes the saver from the menu and from random selection.
+#
+my @tvos_excluded = qw(
+  sonar
+
+  antspotlight blitspin bumps carousel decayscreen distort droste esper
+  flipscreen3d gflux gleidescope glitchpeg glslideshow jigsaw photopile
+  ripples rotzoomer slidescreen slip spotlight tessellimage twang xanalogtv
+  zoom
+
+  apple2 fliptext fontglide gltext noseguy phosphor splitflap starwars
+  winduprobot
+
+  boxfit bsod flipflop mirrorblob xmatrix
+);
+
+sub remove_tvos_excluded_xml($) {
+  my ($app_dir) = @_;
+  foreach my $name (@tvos_excluded) {
+    my $f = "$app_dir/$name.xml";
+    next unless (-f $f);
+    unlink ($f) || error ("$f: $!");
+    print STDERR "$progname: removed $f\n" if ($verbose > 1);
+  }
+}
+
+
 sub compress_all_xml_files($$) {
   my ($app_dir, $vers) = @_;
   opendir (my $dirp, $app_dir) || error ("$app_dir: $!");
@@ -519,6 +549,7 @@ sub update($) {
   my ($ignore, $info_str, $name) = update_saver_xml ($app_dir, $vers);
 
   if ($app_name eq 'XScreenSaver' || $app_name eq 'XScreenSaver-tvOS') {
+    remove_tvos_excluded_xml ($app_dir) if ($app_name eq 'XScreenSaver-tvOS');
     compress_all_xml_files ($app_dir, $vers);
   } else {
 

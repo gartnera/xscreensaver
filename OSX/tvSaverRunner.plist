@@ -36,8 +36,6 @@
 	<dict/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>XScreenSaver displays manipulated versions of your photos.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>OCRA.ttf</string>
