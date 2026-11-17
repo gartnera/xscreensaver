@@ -2742,7 +2742,11 @@ gl_check_ver (const struct gl_version *caps,
 {
 # ifndef HAVE_IPHONE
   NSBeep();
-# else // HAVE_IPHONE 
+# elif defined(HAVE_TVOS)
+  // The white-flash "visual bell" below fires on every Siri Remote swipe
+  // in savers that ignore mouse input, which on a TV just looks like a
+  // glitch.  Do nothing.
+# else // HAVE_IPHONE
 
   // There's no way to play a standard system alert sound!
   // We'd have to include our own WAV for that.
