@@ -944,7 +944,7 @@ static void
 adapt_scale (ModeInfo *mi, double frame_secs)
 {
   xshadertoy_configuration *bp = &bps[MI_SCREEN(mi)];
-  const double min_scale = 0.4;	/* ~1536x864 on a 4K screen */
+  const double min_scale = 0.3;	/* ~1152x648 on a 4K screen */
   const int skip = 2;		/* First frames include shader compiles. */
   double budget = MI_DELAY(mi) / 1000000.0;
   double target, ratio, alpha;
@@ -1090,7 +1090,7 @@ draw_xshadertoy (ModeInfo *mi)
     return;
 
 # ifdef HAVE_TVOS
-  double frame_start = now;
+  double render_start = 0, render_secs = 0;
 # endif
 
   if (bp->nvariants > 1 && now > bp->start_time + duration)
@@ -1199,6 +1199,16 @@ draw_xshadertoy (ModeInfo *mi)
   glXMakeCurrent (MI_DISPLAY(mi), MI_WINDOW(mi), *bp->glx_context);
   glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+# ifdef HAVE_TVOS
+  /* Time only the shader passes, which render to offscreen FBOs.  Touching
+     the window's renderbuffer (the glClear above, the blit below) can block
+     waiting for the display, which is not reduced by lowering the render
+     scale; including it made adapt_scale shrink cheap shaders for nothing.
+     So drain that wait first, and stop the clock before the blit. */
+  glFinish();
+  render_start = double_time();
+# endif
+
 # ifdef HAVE_GLSL
 
   for (i = 0; i < countof(bp->channels); i++)
@@ -1260,6 +1270,11 @@ draw_xshadertoy (ModeInfo *mi)
         break;
     }
 
+# ifdef HAVE_TVOS
+  glFinish();
+  render_secs = double_time() - render_start;
+# endif
+
   glBindFramebuffer (GL_READ_FRAMEBUFFER, bp->channels[i].draw_fbo);
   glBindFramebuffer (GL_DRAW_FRAMEBUFFER, bp->win_draw_fbo);
 
@@ -1278,7 +1293,8 @@ draw_xshadertoy (ModeInfo *mi)
   glFinish();
 
 # ifdef HAVE_TVOS
-  adapt_scale (mi, double_time() - frame_start);
+  if (render_secs > 0)
+    adapt_scale (mi, render_secs);
 # endif
 
   glXSwapBuffers(dpy, window);
