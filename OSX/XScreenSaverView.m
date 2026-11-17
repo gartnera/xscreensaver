@@ -1209,7 +1209,11 @@ static Bool watchdog_lock = FALSE;
 #  ifndef HAVE_TVOS
   [UIApplication sharedApplication].idleTimerDisabled =
     ([UIDevice currentDevice].batteryState != UIDeviceBatteryStateUnplugged);
-#  endif // !HAVE_TVOS
+#  else  // HAVE_TVOS
+  // Apple TV has no battery and is always "docked".  Without this, tvOS's
+  // own screensaver (or sleep) kicks in over the running saver.
+  [UIApplication sharedApplication].idleTimerDisabled = YES;
+#  endif // HAVE_TVOS
 # endif
 
 # ifdef GOLDEN_GATE_KLUDGE
