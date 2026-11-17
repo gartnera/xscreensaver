@@ -172,6 +172,7 @@ typedef struct {
 # ifdef HAVE_TVOS
   GLfloat dyn_max_scale;	/* The configured --scale: never exceed it. */
   double dyn_avg;		/* Smoothed seconds per frame of rendering. */
+  double dyn_peak;		/* Highest dyn_avg since the last change. */
   int dyn_frames;		/* Frames measured since the last change. */
 # endif
 
@@ -947,12 +948,12 @@ adapt_scale (ModeInfo *mi, double frame_secs)
   const double min_scale = 0.3;	/* ~1152x648 on a 4K screen */
   const int skip = 2;		/* First frames include shader compiles. */
   double budget = MI_DELAY(mi) / 1000000.0;
-  double target, ratio, alpha;
+  double target, alpha;
   GLfloat ns, *slot;
   int n;
 
   if (budget < 1/60.0) budget = 1/60.0;
-  target = budget * 0.85;		/* Leave some headroom. */
+  target = budget * 0.85;		/* Aim for some headroom. */
 
   n = ++bp->dyn_frames - skip;		/* Frames measured. */
   if (n <= 0)
@@ -962,19 +963,29 @@ adapt_scale (ModeInfo *mi, double frame_secs)
   alpha = (n < 10 ? 1.0 / n : 0.1);
   bp->dyn_avg = (n == 1 ? frame_secs
                  : bp->dyn_avg * (1 - alpha) + frame_secs * alpha);
+  if (n == 1 || (n >= 10 && bp->dyn_avg > bp->dyn_peak))
+    bp->dyn_peak = bp->dyn_avg;
 
-  ratio = target / bp->dyn_avg;	/* > 1 means there is headroom. */
+  /* Many shaders' cost varies a lot with what's on screen (e.g. zooming),
+     so be asymmetric to avoid hunting:
 
-  /* Way over budget: react after just a few frames.  Otherwise wait for
-     a steadier average before fine-tuning in either direction. */
-  if (! (n >= 3 && ratio < 0.6) && n < 30)
+     - Shrink as soon as we're actually over the frame budget: after a
+       few frames if way over, otherwise once the average is steady.
+     - Grow only after ~2 seconds without a change, and only if even the
+       worst stretch in that time (the peak) had plenty of headroom.
+     - Anything in between: leave it alone.
+   */
+  if ((n >= 3  && bp->dyn_avg > budget * 1.7) ||
+      (n >= 30 && bp->dyn_avg > budget))
+    ns = scale * sqrt (target / bp->dyn_avg);
+  else if (n >= 120 && bp->dyn_peak < target * 0.7)
+    {
+      ns = scale * sqrt (target / bp->dyn_peak);
+      if (ns > scale * 1.25) ns = scale * 1.25;	/* Grow cautiously. */
+    }
+  else
     return;
 
-  if (ratio > 0.95 && ratio < 1.3)	/* Close enough; don't hunt. */
-    return;
-
-  ns = scale * sqrt (ratio);
-  if (ns > scale * 1.25) ns = scale * 1.25;	/* Grow cautiously. */
   if (ns < min_scale) ns = min_scale;
   if (ns > bp->dyn_max_scale) ns = bp->dyn_max_scale;
   if (fabs (ns - scale) < 0.02)
