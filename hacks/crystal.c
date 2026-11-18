@@ -959,14 +959,21 @@ free_crystal(ModeInfo * mi)
                         cryst->ncolors);
 		if (cryst->colors)
 			(void) free((void *) cryst->colors);
+		cryst->colors = 0;
+		cryst->ncolors = 0;
 #if 0 /* #### wrong! -jwz */
 		XFreeColormap(display, cryst->cmap);
 #endif
 	}
+	/* Clear the pointers: a click re-runs init_crystal on this same
+	   struct, which would otherwise reuse the freed atoms and free the
+	   colors a second time. */
 	if (cryst->gc != NULL)
 		XFreeGC(display, cryst->gc);
+	cryst->gc = NULL;
 	if (cryst->atom != NULL)
 		(void) free((void *) cryst->atom);
+	cryst->atom = NULL;
 }
 
 ENTRYPOINT void
