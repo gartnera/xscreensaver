@@ -53,4 +53,8 @@
 - (int)    getIntegerResource: (const char *) name;
 - (BOOL)   getBooleanResource: (const char *) name;
 
+/* Process-wide, non-persistent override for one resource in every saver,
+   e.g. "doFPS".  Pass nil to clear it. */
++ (void) setOverride: (NSObject *) value forResource: (NSString *) name;
+
 @end

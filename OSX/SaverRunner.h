@@ -82,6 +82,9 @@
 
   UIImage *saved_screenshot;
 
+  NSMutableArray *saver_history;	// Previously-run titles, newest last
+  BOOL going_back_p;			// loadSaver called from previousSaver
+
 # endif // HAVE_IPHONE
 }
 
@@ -96,6 +99,7 @@
 - (UIImage *) screenshot;
 - (NSString *) makeDesc:(NSString *)saver
                yearOnly:(BOOL) yearp;
+- (BOOL) previousSaver;
 #endif // HAVE_IPHONE
 
 @end

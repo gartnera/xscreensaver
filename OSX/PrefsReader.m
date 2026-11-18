@@ -419,8 +419,27 @@
 }
 
 
+static NSMutableDictionary *resource_overrides = 0;
+
++ (void) setOverride: (NSObject *) value forResource: (NSString *) name
+{
+  if (! resource_overrides)
+    resource_overrides = [[NSMutableDictionary alloc] init];
+  if (value)
+    [resource_overrides setObject: value forKey: name];
+  else
+    [resource_overrides removeObjectForKey: name];
+}
+
+
 - (NSObject *) getObjectResource: (const char *) name
 {
+  if (resource_overrides) {
+    NSObject *o = [resource_overrides objectForKey:
+                                        [NSString stringWithUTF8String: name]];
+    if (o) return o;
+  }
+
   // Only look in globalDefaults for updater preferences.
 
   static NSDictionary *updaterDefaults;

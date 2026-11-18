@@ -152,6 +152,7 @@
 - (NSOpenGLContext *) oglContext;
 - (void) prepareContext;
 - (NSUserDefaultsController *) userDefaultsController;
+- (PrefsReader *) prefsReader;
 + (NSString *) decompressXML:(NSData *)xml;
 
 - (CGFloat) hackedContentScaleFactor;

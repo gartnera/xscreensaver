@@ -153,9 +153,8 @@
   [backgroundView release];
 }
 
-# ifndef HAVE_TVOS
 - (void)aboutPanel:(UIView *)saverView
-       orientation:(UIInterfaceOrientation)orient
+       orientation:(NSInteger)orient	// UIInterfaceOrientation; not on tvOS
 {
   if (!_showAboutBox)
     return;
@@ -164,8 +163,13 @@
 
   CGRect frame = [saverView frame];
   CGFloat rot;
+# ifdef HAVE_TVOS
+  CGFloat pt1 = 48;   // Read from across the room.
+  CGFloat pt2 = 28;
+# else
   CGFloat pt1 = 24;
   CGFloat pt2 = 14;
+# endif
   UIFont *font1 = [UIFont boldSystemFontOfSize:  pt1];
   UIFont *font2 = [UIFont italicSystemFontOfSize:pt2];
 
@@ -213,6 +217,7 @@
      screen, since many savers have action in the middle.
    */
   switch (orient) {
+# ifndef HAVE_TVOS
   case UIInterfaceOrientationLandscapeLeft:
     rot = -M_PI/2;
     frame.origin.x = ([saverView frame].size.width
@@ -230,6 +235,7 @@
     frame.origin.x = ([saverView frame].size.width  - tsize.width) / 2;
     frame.origin.y = 0;
     break;
+# endif // !HAVE_TVOS
   default:
     rot = 0;
     frame.origin.x = ([saverView frame].size.width  - tsize.width) / 2;
@@ -273,7 +279,9 @@
       textview.showsHorizontalScrollIndicator = NO;
       textview.showsVerticalScrollIndicator   = NO;
       textview.scrollEnabled = NO;
+# ifndef HAVE_TVOS
       textview.editable = NO;
+# endif
       textview.userInteractionEnabled = NO;
       textview.backgroundColor = [UIColor clearColor];
       textview.textColor = (i == 4 
@@ -312,7 +320,6 @@
              userInfo:nil
              repeats:NO];
 }
-# endif // !HAVE_TVOS
 
 
 - (void)aboutOff
@@ -419,17 +426,105 @@
   [self.view addGestureRecognizer:menu];
   [menu release];
 
-  // Play/Pause skips to another random saver (the tvOS stand-in for shake).
-  UITapGestureRecognizer *play = [[UITapGestureRecognizer alloc]
+  // A right-edge click skips to another random saver (the tvOS stand-in
+  // for shake).  Not Play/Pause: leave that to any background audio app.
+  UITapGestureRecognizer *right = [[UITapGestureRecognizer alloc]
+                                    initWithTarget:self
+                                    action:@selector(rightPressed:)];
+  right.allowedPressTypes = @[ @(UIPressTypeRightArrow) ];
+  [self.view addGestureRecognizer:right];
+  [right release];
+
+  // A top-edge click restarts the current saver from scratch.
+  UITapGestureRecognizer *up = [[UITapGestureRecognizer alloc]
+                                 initWithTarget:self
+                                 action:@selector(upPressed:)];
+  up.allowedPressTypes = @[ @(UIPressTypeUpArrow) ];
+  [self.view addGestureRecognizer:up];
+  [up release];
+
+  // A left-edge click goes back to the previous saver.
+  UITapGestureRecognizer *left = [[UITapGestureRecognizer alloc]
                                    initWithTarget:self
-                                   action:@selector(playPausePressed:)];
-  play.allowedPressTypes = @[ @(UIPressTypePlayPause) ];
-  [self.view addGestureRecognizer:play];
-  [play release];
+                                   action:@selector(leftPressed:)];
+  left.allowedPressTypes = @[ @(UIPressTypeLeftArrow) ];
+  [self.view addGestureRecognizer:left];
+  [left release];
+
+  // Holding the bottom edge toggles the FPS display; a short click there
+  // shows the saver's name.  The click waits for the hold to fail.
+  UILongPressGestureRecognizer *downHold =
+    [[UILongPressGestureRecognizer alloc]
+      initWithTarget:self action:@selector(downHeld:)];
+  downHold.allowedPressTypes = @[ @(UIPressTypeDownArrow) ];
+  [self.view addGestureRecognizer:downHold];
+
+  UITapGestureRecognizer *down = [[UITapGestureRecognizer alloc]
+                                   initWithTarget:self
+                                   action:@selector(downPressed:)];
+  down.allowedPressTypes = @[ @(UIPressTypeDownArrow) ];
+  [down requireGestureRecognizerToFail: downHold];
+  [self.view addGestureRecognizer:down];
+  [down release];
+  [downHold release];
 }
 
-- (void)playPausePressed:(UIGestureRecognizer *)sender
+- (void)leftPressed:(UIGestureRecognizer *)sender
 {
+#  if !defined __OPTIMIZE__ || TARGET_IPHONE_SIMULATOR
+  NSLog (@"Left pressed: previous saver");
+#  endif
+  if (self.isBeingDismissed || !self.presentingViewController)
+    return;
+  [_parent previousSaver];
+}
+
+- (void)downPressed:(UIGestureRecognizer *)sender
+{
+  if (self.isBeingDismissed || !self.presentingViewController)
+    return;
+  if (_saverView)
+    [self aboutPanel:_saverView orientation:0];
+}
+
+/* Most savers only read doFPS at startup, so toggling it means restarting
+   the current saver.  The setting lasts until the app quits.
+ */
+- (void)downHeld:(UIGestureRecognizer *)sender
+{
+  if (sender.state != UIGestureRecognizerStateBegan)
+    return;
+  if (self.isBeingDismissed || !self.presentingViewController)
+    return;
+  BOOL on = (_saverView &&
+             [[_saverView prefsReader] getBooleanResource: "doFPS"]);
+#  if !defined __OPTIMIZE__ || TARGET_IPHONE_SIMULATOR
+  NSLog (@"Down held: FPS %s", on ? "off" : "on");
+#  endif
+  [PrefsReader setOverride: [NSNumber numberWithBool: !on]
+               forResource: @"doFPS"];
+  if (_saverView && [_saverView isAnimating])
+    [_saverView stopAnimation];
+  [self createSaverView];
+}
+
+- (void)upPressed:(UIGestureRecognizer *)sender
+{
+#  if !defined __OPTIMIZE__ || TARGET_IPHONE_SIMULATOR
+  NSLog (@"Up pressed: restarting saver");
+#  endif
+  if (self.isBeingDismissed || !self.presentingViewController)
+    return;
+  if (_saverView && [_saverView isAnimating])
+    [_saverView stopAnimation];
+  [self createSaverView];
+}
+
+- (void)rightPressed:(UIGestureRecognizer *)sender
+{
+#  if !defined __OPTIMIZE__ || TARGET_IPHONE_SIMULATOR
+  NSLog (@"Right pressed: random saver");
+#  endif
   if (self.isBeingDismissed || !self.presentingViewController)
     return;
   if (_saverView && [_saverView isAnimating])
@@ -947,6 +1042,15 @@ relabel_menus (NSObject *v, NSString *old_str, NSString *new_str)
 
 # else  // HAVE_IPHONE
 
+  // Remember where we came from, for previousSaver.
+  if (!going_back_p && saver_title && ![saver_title isEqualToString: title]) {
+    if (! saver_history)
+      saver_history = [[NSMutableArray alloc] initWithCapacity: 50];
+    [saver_history addObject: saver_title];
+    if ([saver_history count] > 50)
+      [saver_history removeObjectAtIndex: 0];
+  }
+
   [title retain];
   [saver_title release];
   saver_title = title;
@@ -1441,6 +1545,30 @@ FAIL:
 # endif
   [[rotating_nav topViewController] motionEnded: UIEventSubtypeMotionShake
                                       withEvent: nil];
+}
+
+
+/* Go back to the saver that was running before this one.
+   Returns NO if there is no history.
+ */
+- (BOOL) previousSaver
+{
+  NSString *prev = [[[saver_history lastObject] retain] autorelease];
+  if (! prev)
+    return NO;
+  [saver_history removeLastObject];
+
+  for (UIViewController *v in [rotating_nav viewControllers]) {
+    if ([v isKindOfClass:[SaverListController class]]) {
+      [(SaverListController *)v scrollTo: prev];
+      break;
+    }
+  }
+
+  going_back_p = YES;
+  [self loadSaver: prev];
+  going_back_p = NO;
+  return YES;
 }
 
 

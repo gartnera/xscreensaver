@@ -446,21 +446,22 @@
 
 
 #ifdef HAVE_TVOS
-/* Apple TV can't shake, so the Siri Remote's Play/Pause button stands in
-   for it: launch a random saver.
+/* Apple TV can't shake, so a click on the right edge of the Siri Remote's
+   clickpad stands in for it: launch a random saver.  (Not Play/Pause: that
+   should keep controlling whatever audio app is playing in the background.)
  */
 - (void)viewDidLoad
 {
   [super viewDidLoad];
-  UITapGestureRecognizer *play = [[UITapGestureRecognizer alloc]
-                                   initWithTarget:self
-                                   action:@selector(playPausePressed:)];
-  play.allowedPressTypes = @[ @(UIPressTypePlayPause) ];
-  [self.view addGestureRecognizer:play];
-  [play release];
+  UITapGestureRecognizer *right = [[UITapGestureRecognizer alloc]
+                                    initWithTarget:self
+                                    action:@selector(rightPressed:)];
+  right.allowedPressTypes = @[ @(UIPressTypeRightArrow) ];
+  [self.view addGestureRecognizer:right];
+  [right release];
 }
 
-- (void)playPausePressed:(UIGestureRecognizer *)sender
+- (void)rightPressed:(UIGestureRecognizer *)sender
 {
   [self motionEnded:UIEventSubtypeMotionShake withEvent:nil];
 }
