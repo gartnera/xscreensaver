@@ -1193,7 +1193,21 @@ PutImage (Display *dpy, Drawable d, GC gc, XImage *ximage,
        to create a CGImage from a sub-rectagle of the XImage.
      */
     data += (src_y * bpl) + (src_x * 4);
-    CGDataProviderRef prov = 
+
+    /* With src_x > 0 and the sub-rectangle touching the bottom of the
+       XImage, 'bsize' bytes from 'data' runs off the end of the XImage's
+       allocation, and Quartz segfaults reading it (ShadeBobs at 4K on
+       tvOS).  In that case, copy the rows into a buffer that's big enough.
+     */
+    char *copy = 0;
+    if ((data - ximage->data) + bsize > bpl * ximage->height) {
+      copy = (char *) calloc (1, bsize);
+      for (int y = 0; y < h; y++)
+        memcpy (copy + y * bpl, data + y * bpl, w * 4);
+      data = copy;
+    }
+
+    CGDataProviderRef prov =
       CGDataProviderCreateWithData (NULL, data, bsize, NULL);
 
     CGImageRef cgi = CGImageCreate (w, h,
@@ -1208,6 +1222,7 @@ PutImage (Display *dpy, Drawable d, GC gc, XImage *ximage,
     //Assert (CGImageGetColorSpace (cgi) == dpy->colorspace, "bad colorspace");
     CGContextDrawImage (cgc, r, cgi);
     CGImageRelease (cgi);
+    if (copy) free (copy);  // CGContextDrawImage doesn't retain the data.
 
   } else {   // (bpp == 1)
 
@@ -1223,9 +1238,10 @@ PutImage (Display *dpy, Drawable d, GC gc, XImage *ximage,
             "XPutImage with non-byte-aligned 1bpp X offset not implemented");
 
     data += (src_y * bpl) + (src_x / 8);   // move to x,y within the data
-    unsigned char *flipped = (unsigned char *) malloc (bsize);
+    unsigned char *flipped = (unsigned char *) calloc (1, bsize);
 
-    flipbits ((unsigned char *) data, flipped, bsize);
+    // Don't read past the end of the last row (see above).
+    flipbits ((unsigned char *) data, flipped, (h - 1) * bpl + (w + 7) / 8);
 
     CGDataProviderRef prov = 
       CGDataProviderCreateWithData (NULL, flipped, bsize, NULL);
